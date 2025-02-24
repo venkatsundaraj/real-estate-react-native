@@ -1,55 +1,42 @@
-import { Alert } from "react-native";
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 
-interface UseAppwriteOptions<T, P extends Record<string, string | number>> {
-  fn: (params: P) => Promise<T>;
-  params?: P;
-  skip?: boolean;
+interface UseAppwriteOptions<T> {
+  fn: () => Promise<T>;
 }
 
-interface UseAppwriteReturn<T, P> {
+interface UseAppwriteResult<T> {
   data: T | null;
   loading: boolean;
-  error: string | null;
-  refetch: (newParams: P) => Promise<void>;
+  error: Error | null;
+  refetch: () => Promise<void>;
 }
 
-export const useAppwrite = <T, P extends Record<string, string | number>>({
+export function useAppwrite<T>({
   fn,
-  params = {} as P,
-  skip = false,
-}: UseAppwriteOptions<T, P>): UseAppwriteReturn<T, P> => {
+}: UseAppwriteOptions<T>): UseAppwriteResult<T> {
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(!skip);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const fetchData = useCallback(
-    async (fetchParams: P) => {
+  const fetchData = async () => {
+    try {
       setLoading(true);
-      setError(null);
-
-      try {
-        const result = await fn(fetchParams);
-        setData(result);
-      } catch (err: unknown) {
-        const errorMessage =
-          err instanceof Error ? err.message : "An unknown error occurred";
-        setError(errorMessage);
-        Alert.alert("Error", errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [fn]
-  );
+      const result = await fn();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error("An error occurred"));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!skip) {
-      fetchData(params);
-    }
+    fetchData();
   }, []);
 
-  const refetch = async (newParams: P) => await fetchData(newParams);
+  const refetch = async () => {
+    await fetchData();
+  };
 
   return { data, loading, error, refetch };
-};
+}

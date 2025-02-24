@@ -15,7 +15,7 @@ client
   .setProject(config.projectiId!)
   .setPlatform(config.platform!);
 
-const avator = new Avatars(client);
+const avatar = new Avatars(client);
 const account = new Account(client);
 
 export const login = async function () {
@@ -63,18 +63,21 @@ export const logout = async function () {
   }
 };
 
-export const getCurrentUser = async function () {
+export async function getCurrentUser() {
   try {
     const result = await account.get();
     if (result.$id) {
-      const useAvatar = avator.getInitials(result.name);
+      const userAvatar = avatar.getInitials(result.name);
 
       return {
         ...result,
-        avator: useAvatar.toString(),
+        avatar: userAvatar.toString(),
       };
     }
-  } catch (err) {
-    console.log(err);
+
+    return null;
+  } catch (error) {
+    console.log(error);
+    return null;
   }
-};
+}
